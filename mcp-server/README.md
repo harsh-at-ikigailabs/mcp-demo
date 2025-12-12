@@ -33,7 +33,7 @@ hatch build
 
 ### Running the MCP Server
 
-The MCP server communicates via stdio (standard input/output). To run it, you must provide the required CLI arguments:
+The MCP server communicates over HTTP using FastMCP's Streamable HTTP transport. To run it, you must provide the required CLI arguments:
 
 ```bash
 hatch run dev -- --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
@@ -57,6 +57,14 @@ mcp-server --base-url https://api.example.com --user-email user@example.com --ap
 - `--user-email`: User email for authentication
 - `--api-key`: API key for authentication
 - `--app-name`: Application name
+
+#### Optional CLI Arguments
+
+- `--host`: Host to bind the HTTP server to (default: 127.0.0.1)
+- `--port`: Port to bind the HTTP server to (default: 8000)
+- `--path`: Path for the HTTP endpoint (default: /mcp)
+
+The server will be accessible at `http://<host>:<port><path>` (e.g., `http://127.0.0.1:8000/mcp`).
 
 ### Development
 

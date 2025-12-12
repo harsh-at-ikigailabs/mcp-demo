@@ -3,26 +3,17 @@ MCP Server implementation for managing datasets, flows, dashboards, and charts.
 """
 
 import argparse
-import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any
 
 from pydantic import AnyUrl
 
 from ikigai import Ikigai
 from ikigai.components import App as IkigaiApp
 
-from mcp.server import Server
-from mcp.server.stdio import stdio_server
-from mcp.types import (
-    Resource,
-    Tool,
-    TextContent,
-    ImageContent,
-    EmbeddedResource,
-)
+from fastmcp import FastMCP
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -62,92 +53,19 @@ def get_ikigai_raw_request_function():
     return ikigai_client._Ikigai__client._Client__session.request
 
 # Create the MCP server instance
-app = Server("mcp-server")
+mcp = FastMCP("mcp-server")
 
 
-@app.list_tools()
-async def list_tools() -> list[Tool]:
+@mcp.tool()
+def list_datasets() -> str:
     """
-    List all available tools (endpoints) in the MCP server.
-    """
-    return [
-        Tool(
-            name="list_datasets",
-            description="List all available datasets",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="list_flows",
-            description="List all available flows",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="list_dashboards",
-            description="List all available dashboards",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-        Tool(
-            name="list_charts",
-            description="List all available charts",
-            inputSchema={
-                "type": "object",
-                "properties": {},
-                "required": [],
-            },
-        ),
-    ]
-
-
-@app.call_tool()
-async def call_tool(
-    name: str, arguments: dict[str, Any] | None
-) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
-    """
-    Handle tool calls for the MCP server.
-    """
-    if arguments is None:
-        arguments = {}
-
-    logger.info("Tool called: %s with arguments: %s", name, arguments)
-
-    if name == "list_datasets":
-        return await handle_list_datasets()
-    elif name == "list_flows":
-        return await handle_list_flows()
-    elif name == "list_dashboards":
-        return await handle_list_dashboards()
-    elif name == "list_charts":
-        return await handle_list_charts()
-    else:
-        raise ValueError(f"Unknown tool: {name}")
-
-
-async def handle_list_datasets() -> Sequence[TextContent]:
-    """
-    List all datasets from the Ikigai app.
+    List all available datasets.
     """
     logger.info("Listing datasets")
     try:
         datasets_dict = ikigai_app.datasets()
         if not datasets_dict:
-            return [
-                TextContent(
-                    type="text",
-                    text="No datasets found in the app.",
-                )
-            ]
+            return "No datasets found in the app."
 
         dataset_list = []
         for name, dataset in datasets_dict.items():
@@ -160,37 +78,22 @@ async def handle_list_datasets() -> Sequence[TextContent]:
                 dataset_info += f": Data Types: {dataset.data_types}"
             dataset_list.append(dataset_info)
 
-        return [
-            TextContent(
-                type="text",
-                text=f"Found {len(datasets_dict)} datasets:\n"
-                + "\n\n".join(dataset_list),
-            )
-        ]
+        return f"Found {len(datasets_dict)} datasets:\n" + "\n\n".join(dataset_list)
     except Exception as e:
         logger.error("Error listing datasets: %s", e)
-        return [
-            TextContent(
-                type="text",
-                text=f"Error listing datasets: {str(e)}",
-            )
-        ]
+        return f"Error listing datasets: {str(e)}"
 
 
-async def handle_list_flows() -> Sequence[TextContent]:
+@mcp.tool()
+def list_flows() -> str:
     """
-    List all flows from the Ikigai app.
+    List all available flows.
     """
     logger.info("Listing flows")
     try:
         flows_dict = ikigai_app.flows()
         if not flows_dict:
-            return [
-                TextContent(
-                    type="text",
-                    text="No flows found in the app.",
-                )
-            ]
+            return "No flows found in the app."
 
         flow_list = []
         for name, flow in flows_dict.items():
@@ -206,25 +109,16 @@ async def handle_list_flows() -> Sequence[TextContent]:
                 pass
             flow_list.append(flow_info)
 
-        return [
-            TextContent(
-                type="text",
-                text=f"Found {len(flows_dict)} flows:\n" + "\n".join(flow_list),
-            )
-        ]
+        return f"Found {len(flows_dict)} flows:\n" + "\n".join(flow_list)
     except Exception as e:
         logger.error("Error listing flows: %s", e)
-        return [
-            TextContent(
-                type="text",
-                text=f"Error listing flows: {str(e)}",
-            )
-        ]
+        return f"Error listing flows: {str(e)}"
 
 
-async def handle_list_dashboards() -> Sequence[TextContent]:
+@mcp.tool()
+def list_dashboards() -> str:
     """
-    List all dashboards from the Ikigai app.
+    List all available dashboards.
     """
     logger.info("Listing dashboards")
     try:
@@ -232,12 +126,7 @@ async def handle_list_dashboards() -> Sequence[TextContent]:
         if hasattr(ikigai_app, "dashboards"):
             dashboards_dict = ikigai_app.dashboards()
             if not dashboards_dict:
-                return [
-                    TextContent(
-                        type="text",
-                        text="No dashboards found in the app.",
-                    )
-                ]
+                return "No dashboards found in the app."
 
             dashboard_list = []
             for name, dashboard in dashboards_dict.items():
@@ -246,33 +135,18 @@ async def handle_list_dashboards() -> Sequence[TextContent]:
                     dashboard_info += f" (ID: {dashboard.dashboard_id})"
                 dashboard_list.append(dashboard_info)
 
-            return [
-                TextContent(
-                    type="text",
-                    text=f"Found {len(dashboards_dict)} dashboards:\n"
-                    + "\n".join(dashboard_list),
-                )
-            ]
+            return f"Found {len(dashboards_dict)} dashboards:\n" + "\n".join(dashboard_list)
         else:
-            return [
-                TextContent(
-                    type="text",
-                    text="Dashboards functionality is not available in the current Ikigai API.",
-                )
-            ]
+            return "Dashboards functionality is not available in the current Ikigai API."
     except Exception as e:
         logger.error("Error listing dashboards: %s", e)
-        return [
-            TextContent(
-                type="text",
-                text=f"Error listing dashboards: {str(e)}",
-            )
-        ]
+        return f"Error listing dashboards: {str(e)}"
 
 
-async def handle_list_charts() -> Sequence[TextContent]:
+@mcp.tool()
+def list_charts() -> str:
     """
-    List all charts from the Ikigai app.
+    List all available charts.
     """
     logger.info("Listing charts")
     try:
@@ -280,12 +154,7 @@ async def handle_list_charts() -> Sequence[TextContent]:
         if hasattr(ikigai_app, "charts"):
             charts_dict = ikigai_app.charts()
             if not charts_dict:
-                return [
-                    TextContent(
-                        type="text",
-                        text="No charts found in the app.",
-                    )
-                ]
+                return "No charts found in the app."
 
             chart_list = []
             for name, chart in charts_dict.items():
@@ -296,142 +165,122 @@ async def handle_list_charts() -> Sequence[TextContent]:
                     chart_info += f": Type: {chart.chart_type}"
                 chart_list.append(chart_info)
 
-            return [
-                TextContent(
-                    type="text",
-                    text=f"Found {len(charts_dict)} charts:\n" + "\n".join(chart_list),
-                )
-            ]
+            return f"Found {len(charts_dict)} charts:\n" + "\n".join(chart_list)
         else:
-            return [
-                TextContent(
-                    type="text",
-                    text="Charts functionality is not available in the current Ikigai API.",
-                )
-            ]
+            return "Charts functionality is not available in the current Ikigai API."
     except Exception as e:
         logger.error("Error listing charts: %s", e)
-        return [
-            TextContent(
-                type="text",
-                text=f"Error listing charts: {str(e)}",
-            )
-        ]
+        return f"Error listing charts: {str(e)}"
 
 
-@app.list_resources()
-async def list_resources() -> list[Resource]:
+@mcp.resource("datasets://all")
+def get_datasets_resource() -> str:
     """
-    List all available resources in the MCP server.
+    Resource containing all datasets.
     """
-    return [
-        Resource(
-            uri=AnyUrl("datasets://all"),
-            name="All Datasets",
-            description="Resource containing all datasets",
-            mimeType="application/json",
-        ),
-        Resource(
-            uri=AnyUrl("flows://all"),
-            name="All Flows",
-            description="Resource containing all flows",
-            mimeType="application/json",
-        ),
-        Resource(
-            uri=AnyUrl("dashboards://all"),
-            name="All Dashboards",
-            description="Resource containing all dashboards",
-            mimeType="application/json",
-        ),
-        Resource(
-            uri=AnyUrl("charts://all"),
-            name="All Charts",
-            description="Resource containing all charts",
-            mimeType="application/json",
-        ),
-    ]
-
-
-@app.read_resource()
-async def read_resource(uri: AnyUrl) -> str:
-    """
-    Read a resource by URI.
-    """
-    logger.info("Reading resource: %s", uri)
-
+    logger.info("Reading resource: datasets://all")
     try:
-        uri_str = str(uri)
-        if uri_str == "datasets://all":
-            datasets_dict = ikigai_app.datasets()
-            datasets_data = []
-            for name, dataset in datasets_dict.items():
-                dataset_info = {"name": name}
-                if hasattr(dataset, "dataset_id"):
-                    dataset_info["id"] = dataset.dataset_id
-                if hasattr(dataset, "model_dump"):
-                    dataset_info.update(dataset.model_dump())
-                datasets_data.append(dataset_info)
+        datasets_dict = ikigai_app.datasets()
+        datasets_data = []
+        for name, dataset in datasets_dict.items():
+            dataset_info = {"name": name}
+            if hasattr(dataset, "dataset_id"):
+                dataset_info["id"] = dataset.dataset_id
+            if hasattr(dataset, "model_dump"):
+                dataset_info.update(dataset.model_dump())
+            datasets_data.append(dataset_info)
 
-            return json.dumps({"datasets": datasets_data}, default=str)
-        elif uri_str == "flows://all":
-            flows_dict = ikigai_app.flows()
-            flows_data = []
-            for name, flow in flows_dict.items():
-                flow_info = {"name": name}
-                if hasattr(flow, "flow_id"):
-                    flow_info["id"] = flow.flow_id
-                if hasattr(flow, "model_dump"):
-                    flow_info.update(flow.model_dump())
-                flows_data.append(flow_info)
-
-            return json.dumps({"flows": flows_data}, default=str)
-        elif uri_str == "dashboards://all":
-            if hasattr(ikigai_app, "dashboards"):
-                dashboards_dict = ikigai_app.dashboards()
-                dashboards_data = []
-                for name, dashboard in dashboards_dict.items():
-                    dashboard_info = {"name": name}
-                    if hasattr(dashboard, "dashboard_id"):
-                        dashboard_info["id"] = dashboard.dashboard_id
-                    if hasattr(dashboard, "model_dump"):
-                        dashboard_info.update(dashboard.model_dump())
-                    dashboards_data.append(dashboard_info)
-
-                return json.dumps({"dashboards": dashboards_data}, default=str)
-            else:
-                return '{"dashboards": [], "message": "Dashboards not available"}'
-        elif uri_str == "charts://all":
-            if hasattr(ikigai_app, "charts"):
-                charts_dict = ikigai_app.charts()
-                charts_data = []
-                for name, chart in charts_dict.items():
-                    chart_info = {"name": name}
-                    if hasattr(chart, "chart_id"):
-                        chart_info["id"] = chart.chart_id
-                    if hasattr(chart, "model_dump"):
-                        chart_info.update(chart.model_dump())
-                    charts_data.append(chart_info)
-
-                return json.dumps({"charts": charts_data}, default=str)
-            else:
-                return '{"charts": [], "message": "Charts not available"}'
-        else:
-            raise ValueError(f"Unknown resource URI: {uri_str}")
+        return json.dumps({"datasets": datasets_data}, default=str)
     except Exception as e:
-        logger.error("Error reading resource %s: %s", uri, e)
+        logger.error("Error reading resource datasets://all: %s", e)
         return json.dumps({"error": str(e)})
 
 
-async def main(server_config: ServerConfig):
+@mcp.resource("flows://all")
+def get_flows_resource() -> str:
     """
-    Main entry point for the MCP server.
+    Resource containing all flows.
+    """
+    logger.info("Reading resource: flows://all")
+    try:
+        flows_dict = ikigai_app.flows()
+        flows_data = []
+        for name, flow in flows_dict.items():
+            flow_info = {"name": name}
+            if hasattr(flow, "flow_id"):
+                flow_info["id"] = flow.flow_id
+            if hasattr(flow, "model_dump"):
+                flow_info.update(flow.model_dump())
+            flows_data.append(flow_info)
+
+        return json.dumps({"flows": flows_data}, default=str)
+    except Exception as e:
+        logger.error("Error reading resource flows://all: %s", e)
+        return json.dumps({"error": str(e)})
+
+
+@mcp.resource("dashboards://all")
+def get_dashboards_resource() -> str:
+    """
+    Resource containing all dashboards.
+    """
+    logger.info("Reading resource: dashboards://all")
+    try:
+        if hasattr(ikigai_app, "dashboards"):
+            dashboards_dict = ikigai_app.dashboards()
+            dashboards_data = []
+            for name, dashboard in dashboards_dict.items():
+                dashboard_info = {"name": name}
+                if hasattr(dashboard, "dashboard_id"):
+                    dashboard_info["id"] = dashboard.dashboard_id
+                if hasattr(dashboard, "model_dump"):
+                    dashboard_info.update(dashboard.model_dump())
+                dashboards_data.append(dashboard_info)
+
+            return json.dumps({"dashboards": dashboards_data}, default=str)
+        else:
+            return '{"dashboards": [], "message": "Dashboards not available"}'
+    except Exception as e:
+        logger.error("Error reading resource dashboards://all: %s", e)
+        return json.dumps({"error": str(e)})
+
+
+@mcp.resource("charts://all")
+def get_charts_resource() -> str:
+    """
+    Resource containing all charts.
+    """
+    logger.info("Reading resource: charts://all")
+    try:
+        if hasattr(ikigai_app, "charts"):
+            charts_dict = ikigai_app.charts()
+            charts_data = []
+            for name, chart in charts_dict.items():
+                chart_info = {"name": name}
+                if hasattr(chart, "chart_id"):
+                    chart_info["id"] = chart.chart_id
+                if hasattr(chart, "model_dump"):
+                    chart_info.update(chart.model_dump())
+                charts_data.append(chart_info)
+
+            return json.dumps({"charts": charts_data}, default=str)
+        else:
+            return '{"charts": [], "message": "Charts not available"}'
+    except Exception as e:
+        logger.error("Error reading resource charts://all: %s", e)
+        return json.dumps({"error": str(e)})
+
+
+def initialize_ikigai(server_config: ServerConfig):
+    """
+    Initialize the Ikigai client and app.
 
     Args:
         server_config: Configuration object containing server settings
     """
     global ikigai_client, ikigai_app
 
-    logger.info("Starting MCP server with base URL: %s", server_config.base_url)
+    logger.info("Initializing Ikigai client with base URL: %s", server_config.base_url)
     logger.info("User email: %s", server_config.user_email)
     logger.info("App name: %s", server_config.app_name)
     # Don't log API key for security
@@ -453,13 +302,6 @@ async def main(server_config: ServerConfig):
     except Exception as e:
         logger.error("Failed to initialize Ikigai client: %s", e)
         raise
-
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options(),
-        )
 
 
 def cli():
@@ -505,7 +347,11 @@ def cli():
         app_name=args.app_name,
     )
 
-    asyncio.run(main(server_config))
+    # Initialize Ikigai client
+    initialize_ikigai(server_config)
+
+    # Start the HTTP server
+    mcp.run()
 
 
 if __name__ == "__main__":
