@@ -61,6 +61,8 @@ mcp = FastMCP("mcp-server")
 def list_datasets() -> str:
     """
     List all available datasets.
+    
+    Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app
     """
     logger.info("Listing datasets")
     try:
@@ -90,6 +92,8 @@ def download_dataset(dataset_name: str) -> str:
     """
     Download the data of a dataset given its name.
     
+    Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#downloading-your-existing-dataset
+    
     Args:
         dataset_name: The name of the dataset to download
         
@@ -99,6 +103,7 @@ def download_dataset(dataset_name: str) -> str:
     logger.info("Downloading dataset: %s", dataset_name)
     try:
         # Get all datasets from the app
+        # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app
         datasets_dict = ikigai_app.datasets()
         
         if not datasets_dict:
@@ -113,6 +118,7 @@ def download_dataset(dataset_name: str) -> str:
         dataset = datasets_dict[dataset_name]
         
         # Download the dataset as a pandas DataFrame
+        # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#downloading-your-existing-dataset
         df = dataset.df().head(10)
         
         # Convert DataFrame to JSON records format
@@ -142,6 +148,8 @@ def download_dataset(dataset_name: str) -> str:
 def list_flows() -> str:
     """
     List all available flows.
+    
+    Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app
     """
     logger.info("Listing flows")
     try:
@@ -167,6 +175,60 @@ def list_flows() -> str:
     except Exception as e:
         logger.error("Error listing flows: %s", e)
         return f"Error listing flows: {str(e)}"
+
+
+@mcp.tool()
+def run_flow(flow_name: str) -> str:
+    """
+    Run a flow given its name.
+    
+    Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#running-a-flow
+    
+    Args:
+        flow_name: The name of the flow to run
+        
+    Returns:
+        A JSON string containing the run log information with status, log_id, and timestamp
+    """
+    logger.info("Running flow: %s", flow_name)
+    try:
+        # Get all flows from the app
+        # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app
+        flows_dict = ikigai_app.flows()
+        
+        if not flows_dict:
+            return "No flows found in the app."
+        
+        # Check if the flow exists
+        if flow_name not in flows_dict:
+            available_flows = ", ".join(flows_dict.keys())
+            return f"Flow '{flow_name}' not found. Available flows: {available_flows}"
+        
+        # Get the specific flow
+        flow = flows_dict[flow_name]
+        
+        # Run the flow
+        # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#running-a-flow
+        run_log = flow.run()
+        
+        # Extract run log information
+        result = {
+            "flow_name": flow_name,
+            "status": str(run_log.status) if hasattr(run_log, "status") else None,
+            "log_id": run_log.log_id if hasattr(run_log, "log_id") else None,
+            "user": run_log.user if hasattr(run_log, "user") else None,
+            "erroneous_facet_id": run_log.erroneous_facet_id if hasattr(run_log, "erroneous_facet_id") else None,
+            "data": run_log.data if hasattr(run_log, "data") else None,
+            "timestamp": str(run_log.timestamp) if hasattr(run_log, "timestamp") else None,
+        }
+        
+        logger.info("Successfully ran flow '%s' with status: %s", flow_name, result["status"])
+        
+        return json.dumps(result, default=str, indent=2)
+        
+    except Exception as e:
+        logger.error("Error running flow '%s': %s", flow_name, e)
+        return f"Error running flow '{flow_name}': {str(e)}"
 
 
 @mcp.tool()

@@ -9,6 +9,7 @@ This MCP server provides the following tools:
 - **list_datasets**: List all available datasets
 - **download_dataset**: Download the data of a dataset given its name
 - **list_flows**: List all available flows
+- **run_flow**: Run a flow given its name
 - **list_dashboards**: List all available dashboards
 - **list_charts**: List all available charts
 
@@ -141,6 +142,37 @@ Lists all available flows.
 **Input**: None
 
 **Output**: A formatted list of flows with their IDs, names, and status.
+
+### run_flow
+
+Runs a flow given its name.
+
+**Input**: 
+- `flow_name` (str): The name of the flow to run
+
+**Output**: A JSON string containing:
+- `flow_name`: The name of the flow that was run
+- `status`: The status of the flow run (e.g., SUCCESS, FAILED)
+- `log_id`: The unique identifier for the run log
+- `user`: The user who ran the flow
+- `erroneous_facet_id`: ID of the facet that caused an error (if any)
+- `data`: Additional data from the run
+- `timestamp`: When the flow was run
+
+**Example**:
+```json
+{
+  "flow_name": "My Flow",
+  "status": "SUCCESS",
+  "log_id": "4545454lllllll",
+  "user": "bob@example.com",
+  "erroneous_facet_id": null,
+  "data": "",
+  "timestamp": "2025-01-01 11:00:05+00:00"
+}
+```
+
+**Reference**: [Ikigai Library - Running a Flow](https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#running-a-flow)
 
 ### list_dashboards
 
