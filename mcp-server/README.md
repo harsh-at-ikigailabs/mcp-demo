@@ -15,6 +15,17 @@ This MCP server provides the following tools:
 
 ## Installation
 
+### Install from Source
+
+```bash
+# Clone the repository
+git clone https://github.com/ikigailabs-io/mcp-server.git
+cd mcp-server
+
+# Install the package
+pip install .
+```
+
 ### Development Installation
 
 This project uses [Hatch](https://hatch.pypa.io/) for project management. To set up the development environment:
@@ -27,9 +38,40 @@ pip install hatch
 hatch env create
 hatch shell
 
-# Install the project in development mode
+# Build the project
 hatch build
 ```
+
+## Claude Desktop Configuration
+
+To use this MCP server with Claude Desktop, add the following configuration to your `claude_desktop_config.json` file:
+
+**macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+
+**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+```json
+{
+  "mcpServers": {
+    "ikigai": {
+      "command": "mcp-server",
+      "args": [
+        "--base-url", "https://api.ikigailabs.io",
+        "--user-email", "your-email@example.com",
+        "--api-key", "your-api-key",
+        "--app-name", "your-app-name"
+      ]
+    }
+  }
+}
+```
+
+Replace the placeholder values with your actual Ikigai credentials:
+- `your-email@example.com`: Your Ikigai account email
+- `your-api-key`: Your Ikigai API key
+- `your-app-name`: The name of the Ikigai app you want to connect to
+
+After updating the configuration, restart Claude Desktop for the changes to take effect.
 
 ## Usage
 
