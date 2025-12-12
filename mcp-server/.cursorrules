@@ -301,6 +301,17 @@ hatch run dev -- --base-url ... --user-email ... --api-key ... --app-id ...
 - Include usage examples
 - Keep this file updated as practices evolve
 
+## External Libraries
+
+### Ikigai Library
+- **Documentation**: [Ikigai Python Library Documentation](https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#ikigai)
+- This library is used for interacting with the Ikigai platform
+- Key operations include:
+  - Accessing apps, datasets, flows, dashboards, and charts
+  - Downloading datasets using `dataset.df()` method
+  - Creating and managing flows
+  - Working with models
+
 ## Additional Resources
 
 - [Hatch Documentation](https://hatch.pypa.io/)

@@ -7,6 +7,7 @@ A Model Context Protocol (MCP) server for managing datasets, flows, dashboards, 
 This MCP server provides the following tools:
 
 - **list_datasets**: List all available datasets
+- **download_dataset**: Download the data of a dataset given its name
 - **list_flows**: List all available flows
 - **list_dashboards**: List all available dashboards
 - **list_charts**: List all available charts
@@ -104,6 +105,34 @@ Lists all available datasets.
 **Input**: None
 
 **Output**: A formatted list of datasets with their IDs, names, and descriptions.
+
+### download_dataset
+
+Downloads the data of a dataset given its name.
+
+**Input**: 
+- `dataset_name` (str): The name of the dataset to download
+
+**Output**: A JSON string containing:
+- `dataset_name`: The name of the dataset
+- `row_count`: Number of rows in the dataset
+- `column_count`: Number of columns in the dataset
+- `columns`: List of column names
+- `data`: Array of records, where each record is a dictionary mapping column names to values
+
+**Example**:
+```json
+{
+  "dataset_name": "My Dataset",
+  "row_count": 100,
+  "column_count": 5,
+  "columns": ["col1", "col2", "col3", "col4", "col5"],
+  "data": [
+    {"col1": "value1", "col2": 123, "col3": "text", ...},
+    ...
+  ]
+}
+```
 
 ### list_flows
 

@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
+import pandas as pd
 from pydantic import AnyUrl
 
 from ikigai import Ikigai
@@ -82,6 +83,59 @@ def list_datasets() -> str:
     except Exception as e:
         logger.error("Error listing datasets: %s", e)
         return f"Error listing datasets: {str(e)}"
+
+
+@mcp.tool()
+def download_dataset(dataset_name: str) -> str:
+    """
+    Download the data of a dataset given its name.
+    
+    Args:
+        dataset_name: The name of the dataset to download
+        
+    Returns:
+        A JSON string containing the dataset data as records
+    """
+    logger.info("Downloading dataset: %s", dataset_name)
+    try:
+        # Get all datasets from the app
+        datasets_dict = ikigai_app.datasets()
+        
+        if not datasets_dict:
+            return "No datasets found in the app."
+        
+        # Check if the dataset exists
+        if dataset_name not in datasets_dict:
+            available_datasets = ", ".join(datasets_dict.keys())
+            return f"Dataset '{dataset_name}' not found. Available datasets: {available_datasets}"
+        
+        # Get the specific dataset
+        dataset = datasets_dict[dataset_name]
+        
+        # Download the dataset as a pandas DataFrame
+        df = dataset.df()
+        
+        # Convert DataFrame to JSON records format
+        # Using orient='records' to get a list of dictionaries
+        data_records = df.to_dict(orient='records')
+        
+        # Create response with metadata
+        result = {
+            "dataset_name": dataset_name,
+            "row_count": len(df),
+            "column_count": len(df.columns),
+            "columns": list(df.columns),
+            "data": data_records
+        }
+        
+        logger.info("Successfully downloaded dataset '%s' with %d rows and %d columns", 
+                   dataset_name, len(df), len(df.columns))
+        
+        return json.dumps(result, default=str, indent=2)
+        
+    except Exception as e:
+        logger.error("Error downloading dataset '%s': %s", dataset_name, e)
+        return f"Error downloading dataset '{dataset_name}': {str(e)}"
 
 
 @mcp.tool()
