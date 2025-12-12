@@ -1,6 +1,7 @@
 """
 Tests for the MCP server.
 """
+
 import pytest
 from mcp_server.server import (
     handle_list_datasets,
@@ -40,4 +41,3 @@ async def test_list_charts():
     result = await handle_list_charts()
     assert len(result) > 0
     assert result[0].type == "text"
-

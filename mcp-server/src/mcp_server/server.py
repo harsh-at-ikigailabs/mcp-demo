@@ -1,11 +1,14 @@
 """
 MCP Server implementation for managing datasets, flows, dashboards, and charts.
 """
+
 import argparse
 import asyncio
 import logging
 from dataclasses import dataclass
 from typing import Any, Sequence
+
+from pydantic import AnyUrl
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
@@ -25,6 +28,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ServerConfig:
     """Configuration for the MCP server."""
+
     base_url: str
     user_email: str
     api_key: str
@@ -84,7 +88,9 @@ async def list_tools() -> list[Tool]:
 
 
 @app.call_tool()
-async def call_tool(name: str, arguments: dict[str, Any] | None) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+async def call_tool(
+    name: str, arguments: dict[str, Any] | None
+) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
     """
     Handle tool calls for the MCP server.
     """
@@ -114,16 +120,25 @@ async def handle_list_datasets() -> Sequence[TextContent]:
         logger.info("Using base URL: %s, App ID: %s", config.base_url, config.app_id)
     # TODO: Implement actual dataset listing logic using config
     datasets = [
-        {"id": "dataset_1", "name": "Sample Dataset 1", "description": "A sample dataset"},
-        {"id": "dataset_2", "name": "Sample Dataset 2", "description": "Another sample dataset"},
+        {
+            "id": "dataset_1",
+            "name": "Sample Dataset 1",
+            "description": "A sample dataset",
+        },
+        {
+            "id": "dataset_2",
+            "name": "Sample Dataset 2",
+            "description": "Another sample dataset",
+        },
     ]
     return [
         TextContent(
             type="text",
-            text=f"Found {len(datasets)} datasets:\n" + "\n".join(
+            text=f"Found {len(datasets)} datasets:\n"
+            + "\n".join(
                 f"- {ds['name']} (ID: {ds['id']}): {ds['description']}"
                 for ds in datasets
-            )
+            ),
         )
     ]
 
@@ -141,10 +156,11 @@ async def handle_list_flows() -> Sequence[TextContent]:
     return [
         TextContent(
             type="text",
-            text=f"Found {len(flows)} flows:\n" + "\n".join(
+            text=f"Found {len(flows)} flows:\n"
+            + "\n".join(
                 f"- {flow['name']} (ID: {flow['id']}): Status: {flow['status']}"
                 for flow in flows
-            )
+            ),
         )
     ]
 
@@ -162,10 +178,11 @@ async def handle_list_dashboards() -> Sequence[TextContent]:
     return [
         TextContent(
             type="text",
-            text=f"Found {len(dashboards)} dashboards:\n" + "\n".join(
+            text=f"Found {len(dashboards)} dashboards:\n"
+            + "\n".join(
                 f"- {db['name']} (ID: {db['id']}): {db['widgets']} widgets"
                 for db in dashboards
-            )
+            ),
         )
     ]
 
@@ -183,10 +200,11 @@ async def handle_list_charts() -> Sequence[TextContent]:
     return [
         TextContent(
             type="text",
-            text=f"Found {len(charts)} charts:\n" + "\n".join(
+            text=f"Found {len(charts)} charts:\n"
+            + "\n".join(
                 f"- {chart['name']} (ID: {chart['id']}): Type: {chart['type']}"
                 for chart in charts
-            )
+            ),
         )
     ]
 
@@ -198,25 +216,25 @@ async def list_resources() -> list[Resource]:
     """
     return [
         Resource(
-            uri="datasets://all",
+            uri=AnyUrl("datasets://all"),
             name="All Datasets",
             description="Resource containing all datasets",
             mimeType="application/json",
         ),
         Resource(
-            uri="flows://all",
+            uri=AnyUrl("flows://all"),
             name="All Flows",
             description="Resource containing all flows",
             mimeType="application/json",
         ),
         Resource(
-            uri="dashboards://all",
+            uri=AnyUrl("dashboards://all"),
             name="All Dashboards",
             description="Resource containing all dashboards",
             mimeType="application/json",
         ),
         Resource(
-            uri="charts://all",
+            uri=AnyUrl("charts://all"),
             name="All Charts",
             description="Resource containing all charts",
             mimeType="application/json",
@@ -230,7 +248,7 @@ async def read_resource(uri: str) -> str:
     Read a resource by URI.
     """
     logger.info("Reading resource: %s", uri)
-    
+
     if uri == "datasets://all":
         # TODO: Implement actual dataset retrieval
         return '{"datasets": []}'
@@ -250,18 +268,18 @@ async def read_resource(uri: str) -> str:
 async def main(server_config: ServerConfig):
     """
     Main entry point for the MCP server.
-    
+
     Args:
         server_config: Configuration object containing server settings
     """
     global config
     config = server_config
-    
+
     logger.info("Starting MCP server with base URL: %s", config.base_url)
     logger.info("User email: %s", config.user_email)
     logger.info("App ID: %s", config.app_id)
     # Don't log API key for security
-    
+
     async with stdio_server() as (read_stream, write_stream):
         await app.run(
             read_stream,
@@ -302,9 +320,9 @@ def cli():
         required=True,
         help="Application ID",
     )
-    
+
     args = parser.parse_args()
-    
+
     # Create configuration object
     server_config = ServerConfig(
         base_url=args.base_url,
@@ -312,10 +330,9 @@ def cli():
         api_key=args.api_key,
         app_id=args.app_id,
     )
-    
+
     asyncio.run(main(server_config))
 
 
 if __name__ == "__main__":
     cli()
-
