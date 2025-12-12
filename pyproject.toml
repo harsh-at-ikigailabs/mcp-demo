@@ -32,9 +32,9 @@ dependencies = [
 mcp-server = "mcp_server.server:cli"
 
 [project.urls]
-Documentation = "https://github.com/Harsh Parekh/mcp-server#readme"
-Issues = "https://github.com/Harsh Parekh/mcp-server/issues"
-Source = "https://github.com/Harsh Parekh/mcp-server"
+Documentation = "https://github.com/harsh-at-ikigailabs/mcp-demo#readme"
+Issues = "https://github.com/harsh-at-ikigailabs/mcp-demo/issues"
+Source = "https://github.com/harsh-at-ikigailabs/mcp-demo"
 
 [tool.hatch.version]
 path = "src/mcp_server/__about__.py"

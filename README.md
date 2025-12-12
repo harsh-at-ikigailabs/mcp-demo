@@ -19,8 +19,8 @@ This MCP server provides the following tools:
 
 ```bash
 # Clone the repository
-git clone https://github.com/ikigailabs-io/mcp-server.git
-cd mcp-server
+git clone https://github.com/harsh-at-ikigailabs/mcp-demo.git
+cd mcp-demo
 
 # Install the package
 pip install .
