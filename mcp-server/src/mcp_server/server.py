@@ -113,7 +113,7 @@ def download_dataset(dataset_name: str) -> str:
         dataset = datasets_dict[dataset_name]
         
         # Download the dataset as a pandas DataFrame
-        df = dataset.df()
+        df = dataset.df().head(10)
         
         # Convert DataFrame to JSON records format
         # Using orient='records' to get a list of dictionaries
@@ -237,11 +237,12 @@ def get_datasets_resource() -> str:
         datasets_dict = ikigai_app.datasets()
         datasets_data = []
         for name, dataset in datasets_dict.items():
-            dataset_info = {"name": name}
-            if hasattr(dataset, "dataset_id"):
-                dataset_info["id"] = dataset.dataset_id
-            if hasattr(dataset, "model_dump"):
-                dataset_info.update(dataset.model_dump())
+            dataset_info = {
+                "name": name,
+                "id": dataset.dataset_id,
+                "size": dataset.size,
+                "columns": dataset.data_types.keys(),
+            }
             datasets_data.append(dataset_info)
 
         return json.dumps({"datasets": datasets_data}, default=str)
