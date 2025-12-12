@@ -10,6 +10,9 @@ from typing import Any, Sequence
 
 from pydantic import AnyUrl
 
+from ikigai import Ikigai
+from ikigai.components import App as IkigaiApp
+
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import (
@@ -32,11 +35,12 @@ class ServerConfig:
     base_url: str
     user_email: str
     api_key: str
-    app_id: str
+    app_name: str
 
 
-# Global configuration variable (set during CLI initialization)
-config: ServerConfig | None = None
+# Global Ikigai client (initialized at server startup)
+ikigai_client: Ikigai
+ikigai_app: IkigaiApp
 
 # Create the MCP server instance
 app = Server("mcp-server")
@@ -116,9 +120,7 @@ async def handle_list_datasets() -> Sequence[TextContent]:
     Stub implementation for listing datasets.
     """
     logger.info("Listing datasets")
-    if config:
-        logger.info("Using base URL: %s, App ID: %s", config.base_url, config.app_id)
-    # TODO: Implement actual dataset listing logic using config
+    # TODO: Implement actual dataset listing logic using ikigai_app
     datasets = [
         {
             "id": "dataset_1",
@@ -272,13 +274,30 @@ async def main(server_config: ServerConfig):
     Args:
         server_config: Configuration object containing server settings
     """
-    global config
-    config = server_config
+    global ikigai_client, ikigai_app
 
-    logger.info("Starting MCP server with base URL: %s", config.base_url)
-    logger.info("User email: %s", config.user_email)
-    logger.info("App ID: %s", config.app_id)
+    logger.info("Starting MCP server with base URL: %s", server_config.base_url)
+    logger.info("User email: %s", server_config.user_email)
+    logger.info("App name: %s", server_config.app_name)
     # Don't log API key for security
+
+    # Initialize Ikigai client
+    try:
+        logger.info("Initializing Ikigai client...")
+        ikigai_client = Ikigai(
+            base_url=AnyUrl(server_config.base_url),
+            user_email=server_config.user_email,
+            api_key=server_config.api_key,
+        )
+        logger.info("Ikigai client initialized successfully")
+
+        # Access the app by name
+        logger.info("Accessing Ikigai app with name: %s", server_config.app_name)
+        ikigai_app = ikigai_client.apps[server_config.app_name]
+        logger.info("Successfully accessed Ikigai app: %s", server_config.app_name)
+    except Exception as e:
+        logger.error("Failed to initialize Ikigai client: %s", e)
+        raise
 
     async with stdio_server() as (read_stream, write_stream):
         await app.run(
@@ -315,10 +334,10 @@ def cli():
         help="API key for authentication",
     )
     parser.add_argument(
-        "--app-id",
+        "--app-name",
         type=str,
         required=True,
-        help="Application ID",
+        help="Application name",
     )
 
     args = parser.parse_args()
@@ -328,7 +347,7 @@ def cli():
         base_url=args.base_url,
         user_email=args.user_email,
         api_key=args.api_key,
-        app_id=args.app_id,
+        app_name=args.app_name,
     )
 
     asyncio.run(main(server_config))

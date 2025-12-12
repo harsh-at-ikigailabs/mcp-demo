@@ -36,19 +36,19 @@ hatch build
 The MCP server communicates via stdio (standard input/output). To run it, you must provide the required CLI arguments:
 
 ```bash
-hatch run dev -- --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-id your-app-id
+hatch run dev -- --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
 ```
 
 Or directly:
 
 ```bash
-python -m mcp_server.server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-id your-app-id
+python -m mcp_server.server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
 ```
 
 Or using the installed script:
 
 ```bash
-mcp-server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-id your-app-id
+mcp-server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
 ```
 
 #### Required CLI Arguments
@@ -56,7 +56,7 @@ mcp-server --base-url https://api.example.com --user-email user@example.com --ap
 - `--base-url`: Base URL for the API
 - `--user-email`: User email for authentication
 - `--api-key`: API key for authentication
-- `--app-id`: Application ID
+- `--app-name`: Application name
 
 ### Development
 

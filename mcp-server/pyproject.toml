@@ -25,6 +25,7 @@ classifiers = [
 dependencies = [
     "mcp>=1.0.0",
     "pydantic>=2.0.0",
+    "ikigai>=0.2.9",
 ]
 
 [project.scripts]
@@ -58,6 +59,11 @@ extra-dependencies = [
 ]
 [tool.hatch.envs.types.scripts]
 check = "mypy --install-types --non-interactive {args:src/mcp_server tests}"
+
+[[tool.mypy.overrides]]
+module = ["ikigai.*"]
+follow_untyped_imports = true
+
 
 [tool.coverage.run]
 source_pkgs = ["mcp_server", "tests"]
