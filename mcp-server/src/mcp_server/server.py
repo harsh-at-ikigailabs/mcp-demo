@@ -4,6 +4,7 @@ MCP Server implementation for managing datasets, flows, dashboards, and charts.
 
 import argparse
 import asyncio
+import json
 import logging
 from dataclasses import dataclass
 from typing import Any, Sequence
@@ -41,6 +42,24 @@ class ServerConfig:
 # Global Ikigai client (initialized at server startup)
 ikigai_client: Ikigai
 ikigai_app: IkigaiApp
+
+def get_ikigai_raw_request_function():
+    """
+    Get the raw request function from the Ikigai client.
+
+    Signature of the request function:
+    ```
+    ikigai._Ikigai__client._Client__session.request(
+        method: 'HTTPMethod',
+        path: 'str',
+        params: 'dict[str, str] | None' = None,
+        json: 'dict | None' = None,
+        *,
+        suppress_logging: 'bool' = False,
+    ) -> 'Response'
+    ```
+    """
+    return ikigai_client._Ikigai__client._Client__session.request
 
 # Create the MCP server instance
 app = Server("mcp-server")
@@ -117,98 +136,187 @@ async def call_tool(
 
 async def handle_list_datasets() -> Sequence[TextContent]:
     """
-    Stub implementation for listing datasets.
+    List all datasets from the Ikigai app.
     """
     logger.info("Listing datasets")
-    # TODO: Implement actual dataset listing logic using ikigai_app
-    datasets = [
-        {
-            "id": "dataset_1",
-            "name": "Sample Dataset 1",
-            "description": "A sample dataset",
-        },
-        {
-            "id": "dataset_2",
-            "name": "Sample Dataset 2",
-            "description": "Another sample dataset",
-        },
-    ]
-    return [
-        TextContent(
-            type="text",
-            text=f"Found {len(datasets)} datasets:\n"
-            + "\n".join(
-                f"- {ds['name']} (ID: {ds['id']}): {ds['description']}"
-                for ds in datasets
-            ),
-        )
-    ]
+    try:
+        datasets_dict = ikigai_app.datasets()
+        if not datasets_dict:
+            return [
+                TextContent(
+                    type="text",
+                    text="No datasets found in the app.",
+                )
+            ]
+
+        dataset_list = []
+        for name, dataset in datasets_dict.items():
+            dataset_info = f"- {name}"
+            if hasattr(dataset, "dataset_id"):
+                dataset_info += f" (ID: {dataset.dataset_id})"
+            if hasattr(dataset, "size"):
+                dataset_info += f": Size: {dataset.size}"
+            if hasattr(dataset, "data_types"):
+                dataset_info += f": Data Types: {dataset.data_types}"
+            dataset_list.append(dataset_info)
+
+        return [
+            TextContent(
+                type="text",
+                text=f"Found {len(datasets_dict)} datasets:\n"
+                + "\n\n".join(dataset_list),
+            )
+        ]
+    except Exception as e:
+        logger.error("Error listing datasets: %s", e)
+        return [
+            TextContent(
+                type="text",
+                text=f"Error listing datasets: {str(e)}",
+            )
+        ]
 
 
 async def handle_list_flows() -> Sequence[TextContent]:
     """
-    Stub implementation for listing flows.
+    List all flows from the Ikigai app.
     """
     logger.info("Listing flows")
-    # TODO: Implement actual flow listing logic
-    flows = [
-        {"id": "flow_1", "name": "Sample Flow 1", "status": "active"},
-        {"id": "flow_2", "name": "Sample Flow 2", "status": "inactive"},
-    ]
-    return [
-        TextContent(
-            type="text",
-            text=f"Found {len(flows)} flows:\n"
-            + "\n".join(
-                f"- {flow['name']} (ID: {flow['id']}): Status: {flow['status']}"
-                for flow in flows
-            ),
-        )
-    ]
+    try:
+        flows_dict = ikigai_app.flows()
+        if not flows_dict:
+            return [
+                TextContent(
+                    type="text",
+                    text="No flows found in the app.",
+                )
+            ]
+
+        flow_list = []
+        for name, flow in flows_dict.items():
+            flow_info = f"- {name}"
+            if hasattr(flow, "flow_id"):
+                flow_info += f" (ID: {flow.flow_id})"
+            # Get flow status
+            try:
+                status = flow.status()
+                if hasattr(status, "status"):
+                    flow_info += f": Status: {status.status}"
+            except Exception:
+                pass
+            flow_list.append(flow_info)
+
+        return [
+            TextContent(
+                type="text",
+                text=f"Found {len(flows_dict)} flows:\n" + "\n".join(flow_list),
+            )
+        ]
+    except Exception as e:
+        logger.error("Error listing flows: %s", e)
+        return [
+            TextContent(
+                type="text",
+                text=f"Error listing flows: {str(e)}",
+            )
+        ]
 
 
 async def handle_list_dashboards() -> Sequence[TextContent]:
     """
-    Stub implementation for listing dashboards.
+    List all dashboards from the Ikigai app.
     """
     logger.info("Listing dashboards")
-    # TODO: Implement actual dashboard listing logic
-    dashboards = [
-        {"id": "dashboard_1", "name": "Sample Dashboard 1", "widgets": 5},
-        {"id": "dashboard_2", "name": "Sample Dashboard 2", "widgets": 3},
-    ]
-    return [
-        TextContent(
-            type="text",
-            text=f"Found {len(dashboards)} dashboards:\n"
-            + "\n".join(
-                f"- {db['name']} (ID: {db['id']}): {db['widgets']} widgets"
-                for db in dashboards
-            ),
-        )
-    ]
+    try:
+        # Check if dashboards method exists
+        if hasattr(ikigai_app, "dashboards"):
+            dashboards_dict = ikigai_app.dashboards()
+            if not dashboards_dict:
+                return [
+                    TextContent(
+                        type="text",
+                        text="No dashboards found in the app.",
+                    )
+                ]
+
+            dashboard_list = []
+            for name, dashboard in dashboards_dict.items():
+                dashboard_info = f"- {name}"
+                if hasattr(dashboard, "dashboard_id"):
+                    dashboard_info += f" (ID: {dashboard.dashboard_id})"
+                dashboard_list.append(dashboard_info)
+
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Found {len(dashboards_dict)} dashboards:\n"
+                    + "\n".join(dashboard_list),
+                )
+            ]
+        else:
+            return [
+                TextContent(
+                    type="text",
+                    text="Dashboards functionality is not available in the current Ikigai API.",
+                )
+            ]
+    except Exception as e:
+        logger.error("Error listing dashboards: %s", e)
+        return [
+            TextContent(
+                type="text",
+                text=f"Error listing dashboards: {str(e)}",
+            )
+        ]
 
 
 async def handle_list_charts() -> Sequence[TextContent]:
     """
-    Stub implementation for listing charts.
+    List all charts from the Ikigai app.
     """
     logger.info("Listing charts")
-    # TODO: Implement actual chart listing logic
-    charts = [
-        {"id": "chart_1", "name": "Sample Chart 1", "type": "bar"},
-        {"id": "chart_2", "name": "Sample Chart 2", "type": "line"},
-    ]
-    return [
-        TextContent(
-            type="text",
-            text=f"Found {len(charts)} charts:\n"
-            + "\n".join(
-                f"- {chart['name']} (ID: {chart['id']}): Type: {chart['type']}"
-                for chart in charts
-            ),
-        )
-    ]
+    try:
+        # Check if charts method exists
+        if hasattr(ikigai_app, "charts"):
+            charts_dict = ikigai_app.charts()
+            if not charts_dict:
+                return [
+                    TextContent(
+                        type="text",
+                        text="No charts found in the app.",
+                    )
+                ]
+
+            chart_list = []
+            for name, chart in charts_dict.items():
+                chart_info = f"- {name}"
+                if hasattr(chart, "chart_id"):
+                    chart_info += f" (ID: {chart.chart_id})"
+                if hasattr(chart, "chart_type"):
+                    chart_info += f": Type: {chart.chart_type}"
+                chart_list.append(chart_info)
+
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Found {len(charts_dict)} charts:\n" + "\n".join(chart_list),
+                )
+            ]
+        else:
+            return [
+                TextContent(
+                    type="text",
+                    text="Charts functionality is not available in the current Ikigai API.",
+                )
+            ]
+    except Exception as e:
+        logger.error("Error listing charts: %s", e)
+        return [
+            TextContent(
+                type="text",
+                text=f"Error listing charts: {str(e)}",
+            )
+        ]
 
 
 @app.list_resources()
@@ -245,26 +353,73 @@ async def list_resources() -> list[Resource]:
 
 
 @app.read_resource()
-async def read_resource(uri: str) -> str:
+async def read_resource(uri: AnyUrl) -> str:
     """
     Read a resource by URI.
     """
     logger.info("Reading resource: %s", uri)
 
-    if uri == "datasets://all":
-        # TODO: Implement actual dataset retrieval
-        return '{"datasets": []}'
-    elif uri == "flows://all":
-        # TODO: Implement actual flow retrieval
-        return '{"flows": []}'
-    elif uri == "dashboards://all":
-        # TODO: Implement actual dashboard retrieval
-        return '{"dashboards": []}'
-    elif uri == "charts://all":
-        # TODO: Implement actual chart retrieval
-        return '{"charts": []}'
-    else:
-        raise ValueError(f"Unknown resource URI: {uri}")
+    try:
+        uri_str = str(uri)
+        if uri_str == "datasets://all":
+            datasets_dict = ikigai_app.datasets()
+            datasets_data = []
+            for name, dataset in datasets_dict.items():
+                dataset_info = {"name": name}
+                if hasattr(dataset, "dataset_id"):
+                    dataset_info["id"] = dataset.dataset_id
+                if hasattr(dataset, "model_dump"):
+                    dataset_info.update(dataset.model_dump())
+                datasets_data.append(dataset_info)
+
+            return json.dumps({"datasets": datasets_data}, default=str)
+        elif uri_str == "flows://all":
+            flows_dict = ikigai_app.flows()
+            flows_data = []
+            for name, flow in flows_dict.items():
+                flow_info = {"name": name}
+                if hasattr(flow, "flow_id"):
+                    flow_info["id"] = flow.flow_id
+                if hasattr(flow, "model_dump"):
+                    flow_info.update(flow.model_dump())
+                flows_data.append(flow_info)
+
+            return json.dumps({"flows": flows_data}, default=str)
+        elif uri_str == "dashboards://all":
+            if hasattr(ikigai_app, "dashboards"):
+                dashboards_dict = ikigai_app.dashboards()
+                dashboards_data = []
+                for name, dashboard in dashboards_dict.items():
+                    dashboard_info = {"name": name}
+                    if hasattr(dashboard, "dashboard_id"):
+                        dashboard_info["id"] = dashboard.dashboard_id
+                    if hasattr(dashboard, "model_dump"):
+                        dashboard_info.update(dashboard.model_dump())
+                    dashboards_data.append(dashboard_info)
+
+                return json.dumps({"dashboards": dashboards_data}, default=str)
+            else:
+                return '{"dashboards": [], "message": "Dashboards not available"}'
+        elif uri_str == "charts://all":
+            if hasattr(ikigai_app, "charts"):
+                charts_dict = ikigai_app.charts()
+                charts_data = []
+                for name, chart in charts_dict.items():
+                    chart_info = {"name": name}
+                    if hasattr(chart, "chart_id"):
+                        chart_info["id"] = chart.chart_id
+                    if hasattr(chart, "model_dump"):
+                        chart_info.update(chart.model_dump())
+                    charts_data.append(chart_info)
+
+                return json.dumps({"charts": charts_data}, default=str)
+            else:
+                return '{"charts": [], "message": "Charts not available"}'
+        else:
+            raise ValueError(f"Unknown resource URI: {uri_str}")
+    except Exception as e:
+        logger.error("Error reading resource %s: %s", uri, e)
+        return json.dumps({"error": str(e)})
 
 
 async def main(server_config: ServerConfig):
