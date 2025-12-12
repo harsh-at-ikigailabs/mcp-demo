@@ -1,0 +1,143 @@
+# MCP Server
+
+A Model Context Protocol (MCP) server for managing datasets, flows, dashboards, and charts.
+
+## Features
+
+This MCP server provides the following tools:
+
+- **list_datasets**: List all available datasets
+- **list_flows**: List all available flows
+- **list_dashboards**: List all available dashboards
+- **list_charts**: List all available charts
+
+## Installation
+
+### Development Installation
+
+This project uses [Hatch](https://hatch.pypa.io/) for project management. To set up the development environment:
+
+```bash
+# Install hatch (if not already installed)
+pip install hatch
+
+# Create and activate the development environment
+hatch env create
+hatch shell
+
+# Install the project in development mode
+hatch build
+```
+
+## Usage
+
+### Running the MCP Server
+
+The MCP server communicates via stdio (standard input/output). To run it, you must provide the required CLI arguments:
+
+```bash
+hatch run dev -- --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-id your-app-id
+```
+
+Or directly:
+
+```bash
+python -m mcp_server.server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-id your-app-id
+```
+
+Or using the installed script:
+
+```bash
+mcp-server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-id your-app-id
+```
+
+#### Required CLI Arguments
+
+- `--base-url`: Base URL for the API
+- `--user-email`: User email for authentication
+- `--api-key`: API key for authentication
+- `--app-id`: Application ID
+
+### Development
+
+Run tests:
+
+```bash
+hatch run test
+```
+
+Type checking:
+
+```bash
+hatch run types:check
+```
+
+## Project Structure
+
+```text
+mcp-server/
+├── src/
+│   └── mcp_server/
+│       ├── __init__.py
+│       ├── __about__.py
+│       └── server.py          # Main MCP server implementation
+├── tests/
+│   └── __init__.py
+├── pyproject.toml              # Project configuration
+└── README.md
+```
+
+## MCP Tools
+
+### list_datasets
+
+Lists all available datasets.
+
+**Input**: None
+
+**Output**: A formatted list of datasets with their IDs, names, and descriptions.
+
+### list_flows
+
+Lists all available flows.
+
+**Input**: None
+
+**Output**: A formatted list of flows with their IDs, names, and status.
+
+### list_dashboards
+
+Lists all available dashboards.
+
+**Input**: None
+
+**Output**: A formatted list of dashboards with their IDs, names, and widget counts.
+
+### list_charts
+
+Lists all available charts.
+
+**Input**: None
+
+**Output**: A formatted list of charts with their IDs, names, and types.
+
+## Resources
+
+The server also exposes the following resources:
+
+- `datasets://all` - All datasets
+- `flows://all` - All flows
+- `dashboards://all` - All dashboards
+- `charts://all` - All charts
+
+This project follows modern Python best practices:
+
+- Uses Hatch for project management and builds
+- Type hints throughout
+- Async/await for all I/O operations
+- Structured logging
+- Modular design
+
+## License
+
+`mcp-server` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
