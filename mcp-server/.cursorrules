@@ -1,0 +1,311 @@
+# Cursor Rules - MCP Server Best Practices
+
+This document outlines the best practices and conventions used in this MCP (Model Context Protocol) server codebase.
+
+## Project Structure
+
+- **Source Code**: All source code lives in `src/mcp_server/`
+- **Tests**: All tests are in `tests/` directory
+- **Configuration**: Project configuration is in `pyproject.toml`
+- **Documentation**: README.md contains usage instructions
+
+## Code Style & Formatting
+
+### Formatter
+- **Ruff** (>=0.14.0) is used for code formatting
+- Run formatter: `hatch run fmt`
+- All code should be formatted before committing
+
+### Style Guidelines
+- Use **PEP 8** style guide
+- Maximum line length: Follow ruff defaults (typically 88-100 characters)
+- Use **double quotes** for strings (ruff default)
+- Add blank lines between:
+  - Top-level imports and code
+  - Class definitions
+  - Function definitions
+- Use trailing commas in multi-line collections
+
+### Example Formatting
+```python
+# Good: Properly formatted function signature
+async def call_tool(
+    name: str, arguments: dict[str, Any] | None
+) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+    ...
+
+# Good: Multi-line dictionary
+datasets = [
+    {
+        "id": "dataset_1",
+        "name": "Sample Dataset 1",
+        "description": "A sample dataset",
+    },
+]
+```
+
+## Type Checking
+
+### Type Hints
+- **Always use type hints** for function parameters and return types
+- Use `mypy` for type checking: `hatch run types:check`
+- Prefer modern Python type syntax:
+  - `dict[str, Any]` instead of `Dict[str, Any]`
+  - `list[Tool]` instead of `List[Tool]`
+  - `Sequence[...]` for read-only sequences
+
+### Type Safety
+- Use `pydantic.AnyUrl` for URI types (required by MCP Resource)
+- Use `Optional[...]` or `... | None` for nullable types
+- Avoid `Any` unless absolutely necessary
+
+### Example
+```python
+from typing import Any, Sequence
+from pydantic import AnyUrl
+
+async def handle_list_datasets() -> Sequence[TextContent]:
+    ...
+```
+
+## Linting
+
+### Linter
+- **Ruff** is used for linting
+- Run linter: `hatch run lint`
+- Auto-fix issues: `hatch run lint-fix`
+- All linting errors must be resolved before committing
+
+### Common Rules
+- No unused imports
+- No undefined variables
+- Follow Python best practices
+- Use lazy logging: `logger.info("Message: %s", variable)` instead of f-strings
+
+## Testing
+
+### Test Structure
+- All tests in `tests/` directory
+- Use `pytest` and `pytest-asyncio` for async tests
+- Mark async tests with `@pytest.mark.asyncio`
+- Run tests: `hatch run test`
+
+### Test Best Practices
+- Test all public functions
+- Use descriptive test names
+- Keep tests simple and focused
+- Mock external dependencies when appropriate
+
+### Example
+```python
+@pytest.mark.asyncio
+async def test_list_datasets():
+    """Test listing datasets."""
+    result = await handle_list_datasets()
+    assert len(result) > 0
+    assert result[0].type == "text"
+```
+
+## Dependency Management
+
+### Hatch
+- **Hatch** is used for project management
+- Dependencies are defined in `pyproject.toml`
+- Use version constraints: `>=` for minimum versions
+- Separate dev dependencies in `[tool.hatch.envs.default]`
+
+### Adding Dependencies
+1. Add to `dependencies` in `pyproject.toml` for runtime deps
+2. Add to `[tool.hatch.envs.default.dependencies]` for dev deps
+
+## MCP Server Patterns
+
+### Tool Definitions
+- Each tool must have:
+  - `name`: Unique identifier
+  - `description`: Clear description of what the tool does
+  - `inputSchema`: JSON schema for input validation
+
+### Resource Definitions
+- Use `pydantic.AnyUrl` for URI types
+- Provide meaningful names and descriptions
+- Set appropriate `mimeType`
+
+## Configuration Management
+
+### CLI Arguments
+- Use `argparse` for CLI argument parsing
+- All required arguments should be clearly documented
+- Store configuration in a dataclass: `ServerConfig`
+- Use global config variable for access throughout the server
+
+### Configuration Pattern
+```python
+@dataclass
+class ServerConfig:
+    """Configuration for the MCP server."""
+    base_url: str
+    user_email: str
+    api_key: str
+    app_id: str
+
+# Global configuration (set during initialization)
+config: ServerConfig | None = None
+```
+
+## Error Handling
+
+### Best Practices
+- Use specific exception types
+- Provide clear error messages
+- Log errors appropriately
+- Don't expose sensitive information in errors
+
+### Example
+```python
+if name == "list_datasets":
+    return await handle_list_datasets()
+else:
+    raise ValueError(f"Unknown tool: {name}")
+```
+
+## Logging
+
+### Logging Practices
+- Use structured logging with `logging` module
+- Set appropriate log levels (INFO, DEBUG, WARNING, ERROR)
+- Use lazy formatting: `logger.info("Message: %s", variable)`
+- Never log sensitive information (API keys, passwords)
+
+### Example
+```python
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+logger.info("Starting MCP server with base URL: %s", config.base_url)
+# Don't log API key for security
+```
+
+## Async/Await
+
+### Async Patterns
+- All MCP handlers are async functions
+- Use `async def` for all handler functions
+- Use `await` for async operations
+- Use `asyncio.run()` for entry points
+
+### Example
+```python
+async def main(server_config: ServerConfig):
+    async with stdio_server() as (read_stream, write_stream):
+        await app.run(read_stream, write_stream, ...)
+```
+
+## Code Organization
+
+### Imports
+- Group imports: stdlib, third-party, local
+- Use absolute imports
+- Sort imports (ruff handles this)
+
+### Function Organization
+- Keep functions focused and single-purpose
+- Extract complex logic into separate functions
+- Use descriptive function names
+- Add docstrings for all public functions
+
+### Example
+```python
+"""
+MCP Server implementation for managing datasets, flows, dashboards, and charts.
+"""
+
+import argparse
+import asyncio
+import logging
+from dataclasses import dataclass
+from typing import Any, Sequence
+
+from pydantic import AnyUrl
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import Resource, Tool, TextContent
+```
+
+## Git Practices
+
+### Commit Messages
+- Use clear, descriptive commit messages
+- Follow conventional commit format when appropriate
+- Include details about what changed and why
+
+### Before Committing
+1. Run formatter: `hatch run fmt`
+2. Run linter: `hatch run lint`
+3. Run type checker: `hatch run types:check`
+4. Run tests: `hatch run test`
+5. Ensure all checks pass
+
+## Development Workflow
+
+### Setup
+```bash
+# Install hatch
+pip install hatch
+
+# Create environment
+hatch env create
+hatch shell
+
+# Install dependencies
+hatch build
+```
+
+### Daily Development
+```bash
+# Format code
+hatch run fmt
+
+# Check linting
+hatch run lint
+
+# Fix linting issues
+hatch run lint-fix
+
+# Type check
+hatch run types:check
+
+# Run tests
+hatch run test
+
+# Run server
+hatch run dev -- --base-url ... --user-email ... --api-key ... --app-id ...
+```
+
+## Security Best Practices
+
+- Never commit API keys or secrets
+- Don't log sensitive information
+- Validate all inputs
+- Use type checking to catch errors early
+- Keep dependencies up to date
+
+## Documentation
+
+- Keep README.md up to date
+- Add docstrings to all public functions
+- Document CLI arguments
+- Include usage examples
+- Keep this file updated as practices evolve
+
+## Additional Resources
+
+- [Hatch Documentation](https://hatch.pypa.io/)
+- [Ruff Documentation](https://docs.astral.sh/ruff/)
+- [MCP Protocol](https://modelcontextprotocol.io/)
+- [Python Type Hints](https://docs.python.org/3/library/typing.html)
+- [PEP 8 Style Guide](https://pep8.org/)
+
