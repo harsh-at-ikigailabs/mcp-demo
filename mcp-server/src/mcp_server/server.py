@@ -6,9 +6,7 @@ import argparse
 import json
 import logging
 from dataclasses import dataclass
-from typing import Any
 
-import pandas as pd
 from pydantic import AnyUrl
 
 from ikigai import Ikigai
@@ -35,6 +33,7 @@ class ServerConfig:
 ikigai_client: Ikigai
 ikigai_app: IkigaiApp
 
+
 def get_ikigai_raw_request_function():
     """
     Get the raw request function from the Ikigai client.
@@ -53,6 +52,7 @@ def get_ikigai_raw_request_function():
     """
     return ikigai_client._Ikigai__client._Client__session.request
 
+
 # Create the MCP server instance
 mcp = FastMCP("mcp-server")
 
@@ -61,18 +61,18 @@ mcp = FastMCP("mcp-server")
 def list_datasets() -> str:
     """
     List all available datasets in the app.
-    
-    Datasets are data files stored in the Ikigai platform. They can be CSV files, 
+
+    Datasets are data files stored in the Ikigai platform. They can be CSV files,
     Excel files, or Pandas DataFrames that have been uploaded to Ikigai.
-    
+
     Returns a formatted list showing:
     - Dataset name
     - Dataset ID
     - Size (number of records)
     - Data types for each column
-    
+
     Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app
-    
+
     Returns:
         A formatted string listing all datasets with their IDs, sizes, and data types.
     """
@@ -103,20 +103,20 @@ def list_datasets() -> str:
 def download_dataset(dataset_name: str) -> str:
     """
     Download the data of a dataset given its name.
-    
-    Downloads the dataset as a pandas DataFrame and returns the first 10 rows 
-    as JSON records. This is useful for inspecting dataset contents without 
+
+    Downloads the dataset as a pandas DataFrame and returns the first 10 rows
+    as JSON records. This is useful for inspecting dataset contents without
     downloading the entire dataset.
-    
-    The dataset can be any data file stored in Ikigai (CSV, Excel, etc.) that 
+
+    The dataset can be any data file stored in Ikigai (CSV, Excel, etc.) that
     has been uploaded to the platform.
-    
+
     Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#downloading-your-existing-dataset
-    
+
     Args:
-        dataset_name: The name of the dataset to download. Use list_datasets 
+        dataset_name: The name of the dataset to download. Use list_datasets
                      to see available dataset names.
-        
+
     Returns:
         A JSON string containing:
         - dataset_name: Name of the dataset
@@ -131,41 +131,45 @@ def download_dataset(dataset_name: str) -> str:
         # Get all datasets from the app
         # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app
         datasets_dict = ikigai_app.datasets()
-        
+
         if not datasets_dict:
             return "No datasets found in the app."
-        
+
         # Check if the dataset exists
         if dataset_name not in datasets_dict:
             available_datasets = ", ".join(datasets_dict.keys())
             return f"Dataset '{dataset_name}' not found. Available datasets: {available_datasets}"
-        
+
         # Get the specific dataset
         dataset = datasets_dict[dataset_name]
-        
+
         # Download the dataset as a pandas DataFrame
         # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#downloading-your-existing-dataset
         df = dataset.df().head(10)
-        
+
         # Convert DataFrame to JSON records format
         # Using orient='records' to get a list of dictionaries
-        data_records = df.to_dict(orient='split')
-        
+        data_records = df.to_dict(orient="split")
+
         # Create response with metadata
         result = {
             "dataset_name": dataset_name,
             "row_count": len(df),
-            "visible_row_index": data_records['index'],
+            "visible_row_index": data_records["index"],
             "column_count": len(df.columns),
-            "columns": list(data_records['columns']),
-            "data": data_records['data']
+            "columns": list(data_records["columns"]),
+            "data": data_records["data"],
         }
-        
-        logger.info("Successfully downloaded dataset '%s' with %d rows and %d columns", 
-                   dataset_name, len(df), len(df.columns))
-        
+
+        logger.info(
+            "Successfully downloaded dataset '%s' with %d rows and %d columns",
+            dataset_name,
+            len(df),
+            len(df.columns),
+        )
+
         return json.dumps(result, default=str, indent=2)
-        
+
     except Exception as e:
         logger.error("Error downloading dataset '%s': %s", dataset_name, e)
         return f"Error downloading dataset '{dataset_name}': {str(e)}"
@@ -175,19 +179,19 @@ def download_dataset(dataset_name: str) -> str:
 def list_flows() -> str:
     """
     List all available flows in the app.
-    
-    A Flow is a component in an Ikigai app that enables you to perform analysis 
-    or computation. Each Flow contains a Flow Definition that specifies the 
-    sequence of Facet Types that perform actions like ingesting data, transforming 
+
+    A Flow is a component in an Ikigai app that enables you to perform analysis
+    or computation. Each Flow contains a Flow Definition that specifies the
+    sequence of Facet Types that perform actions like ingesting data, transforming
     data, machine learning with models, and outputting data.
-    
+
     Returns a formatted list showing:
     - Flow name
     - Flow ID
     - Current status (IDLE, RUNNING, SUCCESS, FAILED, etc.)
-    
+
     Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app
-    
+
     Returns:
         A formatted string listing all flows with their IDs and current status.
     """
@@ -221,21 +225,21 @@ def list_flows() -> str:
 def run_flow(flow_name: str) -> str:
     """
     Run a flow given its name.
-    
-    Executes a flow on the Ikigai platform. When a flow runs, it executes all 
-    the facets defined in the flow definition in sequence, performing operations 
+
+    Executes a flow on the Ikigai platform. When a flow runs, it executes all
+    the facets defined in the flow definition in sequence, performing operations
     like data ingestion, transformation, machine learning, and data output.
-    
-    A RunLog is created that stores the run's details including status, timestamp, 
-    and any error information. The flow must exist in the app and be properly 
+
+    A RunLog is created that stores the run's details including status, timestamp,
+    and any error information. The flow must exist in the app and be properly
     configured before it can be run.
-    
+
     Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#running-a-flow
-    
+
     Args:
-        flow_name: The name of the flow to run. Use list_flows to see available 
+        flow_name: The name of the flow to run. Use list_flows to see available
                   flow names.
-        
+
     Returns:
         A JSON string containing the run log information:
         - flow_name: Name of the flow that was executed
@@ -251,37 +255,43 @@ def run_flow(flow_name: str) -> str:
         # Get all flows from the app
         # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app
         flows_dict = ikigai_app.flows()
-        
+
         if not flows_dict:
             return "No flows found in the app."
-        
+
         # Check if the flow exists
         if flow_name not in flows_dict:
             available_flows = ", ".join(flows_dict.keys())
             return f"Flow '{flow_name}' not found. Available flows: {available_flows}"
-        
+
         # Get the specific flow
         flow = flows_dict[flow_name]
-        
+
         # Run the flow
         # Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#running-a-flow
         run_log = flow.run()
-        
+
         # Extract run log information
         result = {
             "flow_name": flow_name,
             "status": str(run_log.status) if hasattr(run_log, "status") else None,
             "log_id": run_log.log_id if hasattr(run_log, "log_id") else None,
             "user": run_log.user if hasattr(run_log, "user") else None,
-            "erroneous_facet_id": run_log.erroneous_facet_id if hasattr(run_log, "erroneous_facet_id") else None,
+            "erroneous_facet_id": run_log.erroneous_facet_id
+            if hasattr(run_log, "erroneous_facet_id")
+            else None,
             "data": run_log.data if hasattr(run_log, "data") else None,
-            "timestamp": str(run_log.timestamp) if hasattr(run_log, "timestamp") else None,
+            "timestamp": str(run_log.timestamp)
+            if hasattr(run_log, "timestamp")
+            else None,
         }
-        
-        logger.info("Successfully ran flow '%s' with status: %s", flow_name, result["status"])
-        
+
+        logger.info(
+            "Successfully ran flow '%s' with status: %s", flow_name, result["status"]
+        )
+
         return json.dumps(result, default=str, indent=2)
-        
+
     except Exception as e:
         logger.error("Error running flow '%s': %s", flow_name, e)
         return f"Error running flow '{flow_name}': {str(e)}"
@@ -291,15 +301,15 @@ def run_flow(flow_name: str) -> str:
 def list_dashboards() -> str:
     """
     List all available dashboards in the app.
-    
-    Dashboards are visualization components in Ikigai that display data and 
-    insights. They can contain multiple charts and widgets to provide a 
+
+    Dashboards are visualization components in Ikigai that display data and
+    insights. They can contain multiple charts and widgets to provide a
     comprehensive view of your data.
-    
+
     Note: Dashboards functionality may not be available in all Ikigai API versions.
-    
+
     Returns:
-        A formatted string listing all dashboards with their IDs, or a message 
+        A formatted string listing all dashboards with their IDs, or a message
         indicating dashboards are not available.
     """
     logger.info("Listing dashboards")
@@ -317,9 +327,13 @@ def list_dashboards() -> str:
                     dashboard_info += f" (ID: {dashboard.dashboard_id})"
                 dashboard_list.append(dashboard_info)
 
-            return f"Found {len(dashboards_dict)} dashboards:\n" + "\n".join(dashboard_list)
+            return f"Found {len(dashboards_dict)} dashboards:\n" + "\n".join(
+                dashboard_list
+            )
         else:
-            return "Dashboards functionality is not available in the current Ikigai API."
+            return (
+                "Dashboards functionality is not available in the current Ikigai API."
+            )
     except Exception as e:
         logger.error("Error listing dashboards: %s", e)
         return f"Error listing dashboards: {str(e)}"
@@ -329,15 +343,15 @@ def list_dashboards() -> str:
 def list_charts() -> str:
     """
     List all available charts in the app.
-    
-    Charts are visualization components in Ikigai that display data in various 
-    formats (bar charts, line charts, pie charts, etc.). Charts are typically 
+
+    Charts are visualization components in Ikigai that display data in various
+    formats (bar charts, line charts, pie charts, etc.). Charts are typically
     associated with datasets and can be embedded in dashboards.
-    
+
     Note: Charts functionality may not be available in all Ikigai API versions.
-    
+
     Returns:
-        A formatted string listing all charts with their IDs and chart types, 
+        A formatted string listing all charts with their IDs and chart types,
         or a message indicating charts are not available.
     """
     logger.info("Listing charts")
@@ -369,16 +383,16 @@ def list_charts() -> str:
 def get_datasets_resource() -> str:
     """
     Resource containing all datasets in the app.
-    
-    Provides programmatic access to all datasets as JSON. Each dataset entry 
-    includes essential metadata: name, ID, size (number of records), and 
+
+    Provides programmatic access to all datasets as JSON. Each dataset entry
+    includes essential metadata: name, ID, size (number of records), and
     column information.
-    
-    This resource is useful for discovering available datasets and their 
+
+    This resource is useful for discovering available datasets and their
     structure without listing them individually.
-    
+
     Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app
-    
+
     Returns:
         A JSON string containing an array of dataset objects with:
         - name: Dataset name
@@ -409,16 +423,16 @@ def get_datasets_resource() -> str:
 def get_flows_resource() -> str:
     """
     Resource containing all flows in the app.
-    
-    Provides programmatic access to all flows as JSON. Each flow entry includes 
-    the flow name, ID, and complete flow definition details including facets, 
+
+    Provides programmatic access to all flows as JSON. Each flow entry includes
+    the flow name, ID, and complete flow definition details including facets,
     arrows, arguments, and variables.
-    
-    This resource is useful for discovering available flows and their 
+
+    This resource is useful for discovering available flows and their
     configurations without listing them individually.
-    
+
     Reference: https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app
-    
+
     Returns:
         A JSON string containing an array of flow objects with:
         - name: Flow name
@@ -447,12 +461,12 @@ def get_flows_resource() -> str:
 def get_dashboards_resource() -> str:
     """
     Resource containing all dashboards in the app.
-    
-    Provides programmatic access to all dashboards as JSON. Each dashboard 
+
+    Provides programmatic access to all dashboards as JSON. Each dashboard
     entry includes the dashboard name, ID, and complete dashboard configuration.
-    
+
     Note: Dashboards functionality may not be available in all Ikigai API versions.
-    
+
     Returns:
         A JSON string containing an array of dashboard objects with:
         - name: Dashboard name
@@ -485,16 +499,16 @@ def get_dashboards_resource() -> str:
 def get_charts_resource() -> str:
     """
     Resource containing all charts in the app.
-    
-    Provides programmatic access to all charts as JSON. Each chart entry includes 
-    the chart name, ID, chart type, associated dataset information, and complete 
+
+    Provides programmatic access to all charts as JSON. Each chart entry includes
+    the chart name, ID, chart type, associated dataset information, and complete
     chart configuration.
-    
-    Charts are visualization components that can be embedded in dashboards to 
+
+    Charts are visualization components that can be embedded in dashboards to
     display data in various formats.
-    
+
     Note: Charts functionality may not be available in all Ikigai API versions.
-    
+
     Returns:
         A JSON string containing an array of chart objects with:
         - name: Chart name

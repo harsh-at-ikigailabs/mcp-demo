@@ -2,42 +2,45 @@
 Tests for the MCP server.
 """
 
-import pytest
 from mcp_server.server import (
-    handle_list_datasets,
-    handle_list_flows,
-    handle_list_dashboards,
-    handle_list_charts,
+    list_datasets,
+    list_flows,
+    list_dashboards,
+    list_charts,
 )
 
 
-@pytest.mark.asyncio
-async def test_list_datasets():
+def test_list_datasets():
     """Test listing datasets."""
-    result = await handle_list_datasets()
+    # Note: This test requires Ikigai client to be initialized
+    # In a real scenario, you would mock the ikigai_app
+    result = list_datasets()
+    assert isinstance(result, str)
     assert len(result) > 0
-    assert result[0].type == "text"
 
 
-@pytest.mark.asyncio
-async def test_list_flows():
+def test_list_flows():
     """Test listing flows."""
-    result = await handle_list_flows()
+    # Note: This test requires Ikigai client to be initialized
+    # In a real scenario, you would mock the ikigai_app
+    result = list_flows()
+    assert isinstance(result, str)
     assert len(result) > 0
-    assert result[0].type == "text"
 
 
-@pytest.mark.asyncio
-async def test_list_dashboards():
+def test_list_dashboards():
     """Test listing dashboards."""
-    result = await handle_list_dashboards()
+    # Note: This test requires Ikigai client to be initialized
+    # In a real scenario, you would mock the ikigai_app
+    result = list_dashboards()
+    assert isinstance(result, str)
     assert len(result) > 0
-    assert result[0].type == "text"
 
 
-@pytest.mark.asyncio
-async def test_list_charts():
+def test_list_charts():
     """Test listing charts."""
-    result = await handle_list_charts()
+    # Note: This test requires Ikigai client to be initialized
+    # In a real scenario, you would mock the ikigai_app
+    result = list_charts()
+    assert isinstance(result, str)
     assert len(result) > 0
-    assert result[0].type == "text"

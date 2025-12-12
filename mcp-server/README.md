@@ -38,19 +38,19 @@ hatch build
 The MCP server communicates over HTTP using FastMCP's Streamable HTTP transport. To run it, you must provide the required CLI arguments:
 
 ```bash
-hatch run dev -- --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
+hatch run dev -- --base-url https://api.ikigailabs.io --user-email user@example.com --api-key your-api-key --app-name your-app-name
 ```
 
 Or directly:
 
 ```bash
-python -m mcp_server.server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
+python -m mcp_server.server --base-url https://api.ikigailabs.io --user-email user@example.com --api-key your-api-key --app-name your-app-name
 ```
 
 Or using the installed script:
 
 ```bash
-mcp-server --base-url https://api.example.com --user-email user@example.com --api-key your-api-key --app-name your-app-name
+mcp-server --base-url https://api.ikigailabs.io --user-email user@example.com --api-key your-api-key --app-name your-app-name
 ```
 
 #### Required CLI Arguments
