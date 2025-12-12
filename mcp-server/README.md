@@ -1,6 +1,6 @@
 # MCP Server
 
-A Model Context Protocol (MCP) server for managing datasets, flows, dashboards, and charts.
+A Model Context Protocol (MCP) server for managing datasets, flows, dashboards, and charts via the Ikigai platform.
 
 ## Features
 
@@ -55,18 +55,10 @@ mcp-server --base-url https://api.ikigailabs.io --user-email user@example.com --
 
 #### Required CLI Arguments
 
-- `--base-url`: Base URL for the API
+- `--base-url`: Base URL for the Ikigai API
 - `--user-email`: User email for authentication
 - `--api-key`: API key for authentication
-- `--app-name`: Application name
-
-#### Optional CLI Arguments
-
-- `--host`: Host to bind the HTTP server to (default: 127.0.0.1)
-- `--port`: Port to bind the HTTP server to (default: 8000)
-- `--path`: Path for the HTTP endpoint (default: /mcp)
-
-The server will be accessible at `http://<host>:<port><path>` (e.g., `http://127.0.0.1:8000/mcp`).
+- `--app-name`: Name of the Ikigai app to connect to
 
 ### Development
 
@@ -82,6 +74,18 @@ Type checking:
 hatch run types:check
 ```
 
+Format code:
+
+```bash
+hatch run fmt
+```
+
+Lint code:
+
+```bash
+hatch run lint
+```
+
 ## Project Structure
 
 ```text
@@ -92,7 +96,7 @@ mcp-server/
 │       ├── __about__.py
 │       └── server.py          # Main MCP server implementation
 ├── tests/
-│   └── __init__.py
+│   └── test_server.py
 ├── pyproject.toml              # Project configuration
 └── README.md
 ```
@@ -107,11 +111,16 @@ Datasets are data files stored in the Ikigai platform. They can be CSV files, Ex
 
 **Input**: None
 
-**Output**: A formatted list showing:
-- Dataset name
-- Dataset ID
-- Size (number of records)
-- Data types for each column
+**Output**: A formatted string listing all datasets. Example:
+
+```
+Found 3 datasets:
+- Sales Data (ID: abc123): Size: 1500: Data Types: {'date': 'datetime', 'amount': 'float', 'product': 'str'}
+
+- Customer Info (ID: def456): Size: 500: Data Types: {'name': 'str', 'email': 'str', 'signup_date': 'datetime'}
+
+- Inventory (ID: ghi789): Size: 2000: Data Types: {'sku': 'str', 'quantity': 'int', 'warehouse': 'str'}
+```
 
 **Reference**: [Ikigai Library - Finding a Dataset from an App](https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app)
 
@@ -119,29 +128,31 @@ Datasets are data files stored in the Ikigai platform. They can be CSV files, Ex
 
 Downloads the data of a dataset given its name.
 
-Downloads the dataset as a pandas DataFrame and returns the first 10 rows as JSON records. This is useful for inspecting dataset contents without downloading the entire dataset. The dataset can be any data file stored in Ikigai (CSV, Excel, etc.) that has been uploaded to the platform.
+Downloads the dataset as a pandas DataFrame and returns the first 10 rows as JSON. This is useful for inspecting dataset contents without downloading the entire dataset. The dataset can be any data file stored in Ikigai (CSV, Excel, etc.) that has been uploaded to the platform.
 
 **Input**: 
 - `dataset_name` (str): The name of the dataset to download. Use `list_datasets` to see available dataset names.
 
 **Output**: A JSON string containing:
 - `dataset_name`: The name of the dataset
-- `row_count`: Number of rows returned (limited to 10 for context size)
+- `row_count`: Number of rows returned (limited to 10)
+- `visible_row_index`: List of row indices that are visible in the response
 - `column_count`: Number of columns in the dataset
 - `columns`: List of column names
-- `data`: Array of records, where each record is a dictionary mapping column names to values
+- `data`: Array of rows, where each row is an array of values
 
 **Example**:
 ```json
 {
-  "dataset_name": "My Dataset",
+  "dataset_name": "Sales Data",
   "row_count": 10,
+  "visible_row_index": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
   "column_count": 5,
-  "columns": ["col1", "col2", "col3", "col4", "col5"],
+  "columns": ["date", "product", "quantity", "price", "total"],
   "data": [
-    {"col1": "value1", "col2": 123, "col3": "text", "col4": 45.6, "col5": "2024-01-01"},
-    {"col1": "value2", "col2": 456, "col3": "text2", "col4": 78.9, "col5": "2024-01-02"},
-    ...
+    ["2024-01-01", "Widget A", 10, 25.99, 259.90],
+    ["2024-01-02", "Widget B", 5, 15.50, 77.50],
+    ["2024-01-03", "Widget A", 8, 25.99, 207.92]
   ]
 }
 ```
@@ -156,10 +167,13 @@ A Flow is a component in an Ikigai app that enables you to perform analysis or c
 
 **Input**: None
 
-**Output**: A formatted list showing:
-- Flow name
-- Flow ID
-- Current status (IDLE, RUNNING, SUCCESS, FAILED, etc.)
+**Output**: A formatted string listing all flows. Example:
+
+```
+Found 2 flows:
+- Data Processing Flow (ID: flow123): Status: SUCCESS
+- ML Training Flow (ID: flow456): Status: IDLE
+```
 
 **Reference**: [Ikigai Library - Finding a Flow from an App](https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app)
 
@@ -177,17 +191,17 @@ Executes a flow on the Ikigai platform. When a flow runs, it executes all the fa
 - `status`: Status of the flow run (SUCCESS, FAILED, etc.)
 - `log_id`: Unique identifier for this run log
 - `user`: Email of the user who ran the flow
-- `erroneous_facet_id`: ID of the facet that caused an error (if any)
+- `erroneous_facet_id`: ID of the facet that caused an error (if any, otherwise null)
 - `data`: Additional data from the run
 - `timestamp`: When the flow was executed (ISO format)
 
 **Example**:
 ```json
 {
-  "flow_name": "My Flow",
+  "flow_name": "Data Processing Flow",
   "status": "SUCCESS",
-  "log_id": "4545454lllllll",
-  "user": "bob@example.com",
+  "log_id": "log_abc123xyz",
+  "user": "user@example.com",
   "erroneous_facet_id": null,
   "data": "",
   "timestamp": "2025-01-01 11:00:05+00:00"
@@ -206,7 +220,15 @@ Dashboards are visualization components in Ikigai that display data and insights
 
 **Input**: None
 
-**Output**: A formatted list of dashboards with their IDs and names, or a message indicating dashboards are not available.
+**Output**: A formatted string listing all dashboards. Example:
+
+```
+Found 2 dashboards:
+- Sales Dashboard (ID: dash123)
+- Analytics Overview (ID: dash456)
+```
+
+Or if not available: `"Dashboards functionality is not available in the current Ikigai API."`
 
 ### list_charts
 
@@ -218,7 +240,16 @@ Charts are visualization components in Ikigai that display data in various forma
 
 **Input**: None
 
-**Output**: A formatted list of charts with their IDs, names, and chart types, or a message indicating charts are not available.
+**Output**: A formatted string listing all charts. Example:
+
+```
+Found 3 charts:
+- Revenue Chart (ID: chart123): Type: bar
+- Trends Chart (ID: chart456): Type: line
+- Distribution (ID: chart789): Type: pie
+```
+
+Or if not available: `"Charts functionality is not available in the current Ikigai API."`
 
 ## Resources
 
@@ -226,48 +257,113 @@ The server also exposes the following resources that provide programmatic access
 
 ### datasets://all
 
-Resource containing all datasets in the app as JSON. Each dataset entry includes:
-- `name`: Dataset name
-- `id`: Dataset ID
-- `size`: Number of records
-- `columns`: List of column names (from data_types)
+Resource containing all datasets in the app as JSON.
+
+**Output**:
+```json
+{
+  "datasets": [
+    {
+      "name": "Sales Data",
+      "id": "abc123",
+      "size": 1500,
+      "columns": ["date", "amount", "product"]
+    },
+    {
+      "name": "Customer Info",
+      "id": "def456",
+      "size": 500,
+      "columns": ["name", "email", "signup_date"]
+    }
+  ]
+}
+```
 
 **Reference**: [Ikigai Library - Finding a Dataset from an App](https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-dataset-from-an-app)
 
 ### flows://all
 
-Resource containing all flows in the app as JSON. Each flow entry includes:
-- `name`: Flow name
-- `id`: Flow ID
-- Additional flow definition details (facets, arrows, arguments, variables)
+Resource containing all flows in the app as JSON.
+
+**Output**:
+```json
+{
+  "flows": [
+    {
+      "name": "Data Processing Flow",
+      "id": "flow123"
+    },
+    {
+      "name": "ML Training Flow",
+      "id": "flow456"
+    }
+  ]
+}
+```
 
 **Reference**: [Ikigai Library - Finding a Flow from an App](https://github.com/ikigailabs-io/ikigai?tab=readme-ov-file#finding-a-flow-from-an-app)
 
 ### dashboards://all
 
-Resource containing all dashboards in the app as JSON. Each dashboard entry includes:
-- `name`: Dashboard name
-- `id`: Dashboard ID
-- Additional dashboard configuration details
+Resource containing all dashboards in the app as JSON.
+
+**Output**:
+```json
+{
+  "dashboards": [
+    {
+      "name": "Sales Dashboard",
+      "id": "dash123"
+    }
+  ]
+}
+```
+
+Or if dashboards are not available:
+```json
+{
+  "dashboards": [],
+  "message": "Dashboards not available"
+}
+```
 
 **Note**: Dashboards functionality may not be available in all Ikigai API versions.
 
 ### charts://all
 
-Resource containing all charts in the app as JSON. Each chart entry includes:
-- `name`: Chart name
-- `id`: Chart ID
-- Additional chart configuration details (chart_type, dataset_id, etc.)
+Resource containing all charts in the app as JSON.
+
+**Output**:
+```json
+{
+  "charts": [
+    {
+      "name": "Revenue Chart",
+      "id": "chart123"
+    }
+  ]
+}
+```
+
+Or if charts are not available:
+```json
+{
+  "charts": [],
+  "message": "Charts not available"
+}
+```
 
 **Note**: Charts functionality may not be available in all Ikigai API versions.
+
+## Architecture
 
 This project follows modern Python best practices:
 
 - Uses Hatch for project management and builds
 - Type hints throughout
-- Async/await for all I/O operations
-- Structured logging
-- Modular design
+- Structured logging with the `logging` module
+- FastMCP for MCP server implementation
+- Synchronous tool handlers for simplicity
 
 ## License
 
